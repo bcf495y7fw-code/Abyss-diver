@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>ABYSS — a pocket deep-sea dive</title>
+  <meta name="description" content="A one-touch deep-sea arcade game. Installable, plays offline.">
+  <meta name="theme-color" content="#020d1a">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ABYSS">
+
+  <!-- Type: Bungee for display, Space Grotesk for UI -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-mode="menu">
+  <canvas id="game"></canvas>
+  <div id="vignette"></div>
+  <div id="hurt"></div>
+
+  <!-- HUD -->
+  <header id="hud">
+    <div class="stat depth"><span class="lbl">DEPTH</span><span class="val" id="hudDepth">0m</span></div>
+    <div class="stat pearls"><span class="dot"></span><span class="val" id="hudPearls">0</span></div>
+    <div class="airwrap" id="hudAir"><span class="lbl">AIR</span>
+      <div class="bar"><div class="fill" id="hudAirFill"></div></div>
+    </div>
+    <div class="hearts" id="hearts"><span>♥</span><span>♥</span><span>♥</span></div>
+    <button id="btnPause" class="iconbtn pause" aria-label="Pause">❚❚</button>
+  </header>
+
+  <!-- MENU -->
+  <div class="overlay" id="menu">
+    <div class="panel">
+      <p class="kicker">A one-touch deep-sea dive</p>
+      <h1 class="title"><span class="big">ABYSS</span><span class="sub">DIVER</span></h1>
+      <ul class="howto">
+        <li><b>HOLD</b> to dive down</li>
+        <li><b>RELEASE</b> to float back up</li>
+        <li>Grab <i class="ico pearl-ico"></i> pearls and <i class="ico air-ico"></i> air — dodge <i class="ico jelly-ico"></i> jellies, mines &amp; anglers</li>
+      </ul>
+      <div class="btnrow">
+        <button class="btn" id="btnStart">▶ DIVE</button>
+        <button class="btn ghost" id="installBtn" hidden>⤓ INSTALL APP</button>
+        <button class="iconbtn sound" data-sound aria-label="Toggle sound">♪</button>
+      </div>
+      <p class="bestline" id="menuBest">Best depth — <b>0 m</b></p>
+      <p class="pwa-note"><span class="pulse-dot"></span> Installable · plays offline</p>
+    </div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div class="overlay" id="over" hidden>
+    <div class="panel">
+      <p class="kicker bad">Signal lost</p>
+      <h2 class="title small"><span class="big" id="overTitle">HULL BREACH</span></h2>
+      <div class="stats">
+        <div><span class="lbl">DEPTH</span><span class="val" id="statDepth">0m</span></div>
+        <div><span class="lbl">PEARLS</span><span class="val" id="statPearls">0</span></div>
+        <div><span class="lbl">BEST</span><span class="val" id="statBest">0m</span><em id="newBest" hidden>NEW!</em></div>
+      </div>
+      <div class="btnrow">
+        <button class="btn" id="btnAgain">↻ DIVE AGAIN</button>
+        <button class="btn ghost" id="btnMenu">MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAUSE -->
+  <div class="overlay" id="pause" hidden>
+    <div class="panel">
+      <p class="kicker">Systems idle</p>
+      <h2 class="title small"><span class="big">PAUSED</span></h2>
+      <div class="btnrow">
+        <button class="btn" id="btnResume">▶ RESUME</button>
+        <button class="btn ghost" id="btnQuit">MENU</button>
+        <button class="iconbtn sound" data-sound aria-label="Toggle sound">♪</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <noscript><p style="padding:2rem">ABYSS needs JavaScript to run.</p></noscript>
+
+  <script src="game.js"></script>
+</body>
+</html>
