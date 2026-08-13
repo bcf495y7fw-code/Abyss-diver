@@ -1,6 +1,6 @@
 /* Service worker — precache the app shell, then serve cache-first.
    When you change files, bump CACHE so old copies get replaced. */
-const CACHE = 'abyss-v2';
+const CACHE = 'abyss-v3';
 const SHELL = [
   './', './index.html', './style.css', './game.js',
   './manifest.webmanifest', './icons/icon.svg'
