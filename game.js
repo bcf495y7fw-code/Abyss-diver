@@ -544,10 +544,11 @@ function syncHUD(){
 }
 
 /* ---------- input ---------- */
-function pressDown(){ AudioFX.init(); AudioFX.resume(); if(S.mode==='playing') P.diving=true; }
+function pressDown(e){ if (e.cancelable) e.preventDefault(); AudioFX.init(); AudioFX.resume(); if(S.mode==='playing') P.diving=true; }
 function pressUp(){ P.diving=false; }
 
 canvas.addEventListener('pointerdown', pressDown);
+canvas.addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('pointerup', pressUp);
 addEventListener('pointercancel', pressUp);
 addEventListener('keydown', e=>{
