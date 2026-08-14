@@ -4,7 +4,7 @@
 
 /* ---------- DOM ---------- */
 const $ = s => document.querySelector(s);
-const APP_VERSION = '1.0.7';
+const APP_VERSION = '1.0.8';
 const canvas = $('#game'), ctx = canvas.getContext('2d');
 const hudDepth = $('#hudDepth'), hudPearls = $('#hudPearls'),
       hudAir = $('#hudAir'), hudAirFill = $('#hudAirFill'), heartsEl = $('#hearts');
@@ -573,7 +573,7 @@ function createDoubleTapPreventer(timeout_ms = 750) {
 }
 
 // Add the listener to the document with passive: false to allow preventDefault()
-document.addEventListener("touchstart", createDoubleTapPreventer(500), { passive: false });
+document.addEventListener("touchstart", createDoubleTapPreventer(750), { passive: false });
 
 canvas.addEventListener('pointerdown', pressDown);
 canvas.addEventListener('contextmenu', e => e.preventDefault());
