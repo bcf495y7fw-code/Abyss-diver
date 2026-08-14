@@ -177,6 +177,8 @@ function toMenu(){
   menuEl.hidden=false; overEl.hidden=true; pauseEl.hidden=true;
   document.body.dataset.mode='menu';
   menuBest.innerHTML = `Best depth — <b>${S.best} m</b>`;
+  const vEl = $('#menuVersion');
+  if (vEl) vEl.textContent = `v${APP_VERSION}`;
 }
 function togglePause(){
   if(S.mode==='playing'){
