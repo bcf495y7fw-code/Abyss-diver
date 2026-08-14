@@ -551,7 +551,7 @@ function pressDown(e){ if (e.cancelable) e.preventDefault(); AudioFX.init(); Aud
 function pressUp(){ P.diving=false; }
 
 // Prevent iOS text selection magnifier on double-tap and hold
-function createDoubleTapPreventer(timeout_ms = 500) {
+function createDoubleTapPreventer(timeout_ms = 750) {
     let dblTapTimer = null;
     let dblTapPressed = false;
 
