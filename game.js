@@ -27,7 +27,7 @@ const store = {
   set(k,v){ try{ localStorage.setItem(k,v); }catch{} }
 };
 const buzz = p => { try{ navigator.vibrate && navigator.vibrate(p); }catch{} };
-
+      
 /* ---------- sizing ---------- */
 let W=0, H=0;
 function resize(){
@@ -549,6 +549,31 @@ function syncHUD(){
 /* ---------- input ---------- */
 function pressDown(e){ if (e.cancelable) e.preventDefault(); AudioFX.init(); AudioFX.resume(); if(S.mode==='playing') P.diving=true; }
 function pressUp(){ P.diving=false; }
+
+// Prevent iOS text selection magnifier on double-tap and hold
+function createDoubleTapPreventer(timeout_ms = 500) {
+    let dblTapTimer = null;
+    let dblTapPressed = false;
+
+    return function (e) {
+        clearTimeout(dblTapTimer);
+        
+        if (dblTapPressed) {
+            // This is the second touchstart within the timeout (double-tap)
+            e.preventDefault(); 
+            dblTapPressed = false;
+        } else {
+            // This is the first touchstart
+            dblTapPressed = true;
+            dblTapTimer = setTimeout(() => {
+                dblTapPressed = false;
+            }, timeout_ms);
+        }
+    };
+}
+
+// Add the listener to the document with passive: false to allow preventDefault()
+document.addEventListener("touchstart", createDoubleTapPreventer(500), { passive: false });
 
 canvas.addEventListener('pointerdown', pressDown);
 canvas.addEventListener('contextmenu', e => e.preventDefault());
