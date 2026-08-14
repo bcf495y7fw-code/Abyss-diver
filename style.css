@@ -8,23 +8,29 @@
 *{margin:0;padding:0;
   box-sizing:border-box;
   touch-action:manipulation;
-  user-select:none; 
-  -webkit-user-select:none; 
   -webkit-tap-highlight-color:transparent; 
   -webkit-touch-callout:none;
- }
+  -webkit-user-select:none;
+  user-select:none;
+}
 [hidden]{display:none!important}
-html,body{height:100%}
+html,body{
+  height:100%;
+  touch-action:manupulation;
+  -webkit-overflow-scrolling:touch;
+}
 body{
   font-family:var(--body); color:var(--ink);
   background:linear-gradient(#0a5468,#020d1a);
   overflow:hidden; overscroll-behavior:none;
-  user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none;
 }
 button{font-family:inherit; cursor:pointer; touch-action:manipulation}
 :focus-visible{outline:2px solid var(--cyan); outline-offset:3px}
 
-#game{position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; cursor:pointer; z-index:0}
+#game{
+  position:fixed; inset:0; width:100%; height:100%; 
+  display:block; cursor:pointer; z-index:0;
+}
 
 /* screen fx */
 #vignette{position:fixed; inset:0; z-index:3; pointer-events:none;
