@@ -172,7 +172,7 @@ function startGame(){
 }
 function toMenu(){
   S.mode='menu';
-  S.inv = p;
+  S.inv = 0;
   jellies.length=0; mines.length=0; pearlsA.length=0; bubbles.length=0;
   anglers.length=0; pops.length=0;
   menuEl.hidden=false; overEl.hidden=true; pauseEl.hidden=true;
