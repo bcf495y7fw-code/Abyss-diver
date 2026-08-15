@@ -4,7 +4,7 @@
 
 /* ---------- DOM ---------- */
 const $ = s => document.querySelector(s);
-const APP_VERSION = '1.0.8';
+const APP_VERSION = '1.0.9';
 const canvas = $('#game'), ctx = canvas.getContext('2d');
 const hudDepth = $('#hudDepth'), hudPearls = $('#hudPearls'),
       hudAir = $('#hudAir'), hudAirFill = $('#hudAirFill'), heartsEl = $('#hearts');
@@ -172,6 +172,7 @@ function startGame(){
 }
 function toMenu(){
   S.mode='menu';
+  S.inv = p;
   jellies.length=0; mines.length=0; pearlsA.length=0; bubbles.length=0;
   anglers.length=0; pops.length=0;
   menuEl.hidden=false; overEl.hidden=true; pauseEl.hidden=true;
@@ -271,6 +272,12 @@ function worldStep(dt, spd, live){
       pearlsA.splice(i,1); S.pearls++;
       pop(p.x,p.y-14,'+1','#f2fbff'); burst(p.x,p.y,'#f2fbff',8,110);
       AudioFX.pearl(); buzz(15);
+
+      if(S.pearls % 100 === 0 && S.hearts < 3) {
+        S.hearts++;
+        pop(P.x+40,P.y-20,'+♥','#ff6b57');
+      AudioFX.milestone();
+      } 
     } }
   for(let i=bubbles.length-1;i>=0;i--){ const b=bubbles[i];
     if(Math.hypot(b.x-P.x,b.y-P.y) < P.r+b.r+4){
