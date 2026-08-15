@@ -279,6 +279,7 @@ function worldStep(dt, spd, live){
       AudioFX.milestone();
       } 
     } }
+      
   for(let i=bubbles.length-1;i>=0;i--){ const b=bubbles[i];
     if(Math.hypot(b.x-P.x,b.y-P.y) < P.r+b.r+4){
       bubbles.splice(i,1); S.air=clamp(S.air+30,0,100);
