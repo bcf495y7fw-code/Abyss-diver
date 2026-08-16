@@ -5,7 +5,7 @@
 /* ---------- DOM ---------- */
 const $ = s => document.querySelector(s);
 const APP_VERSION = '1.0.12';
-const canvas = $('#game'), ctx = canvas.getContext('2d');
+const canvas = $('#game'), ctx = canvas.getContext('2d', { alpha: false });
 const hudDepth = $('#hudDepth'), hudPearls = $('#hudPearls'),
       hudAir = $('#hudAir'), hudAirFill = $('#hudAirFill'), heartsEl = $('#hearts');
 const menuEl = $('#menu'), overEl = $('#over'), pauseEl = $('#pause');
