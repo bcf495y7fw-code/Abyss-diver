@@ -733,12 +733,47 @@ function draw(){
 }
 
 /* ---------- HUD ---------- */
+const lastHud = {
+  depth: -1,
+  pearls: -1,
+  air: -1,
+  hearts: -1,
+  low: false
+};
+
 function syncHUD(){
-  hudDepth.textContent = Math.floor(S.depth)+'m';
-  hudPearls.textContent = S.pearls;
-  hudAirFill.style.width = clamp(S.air,0,100)+'%';
-  hudAir.classList.toggle('low', S.air<28 && S.mode==='playing');
-  [...heartsEl.children].forEach((h,i)=>h.classList.toggle('lost', i>=S.hearts));
+  const depth = Math.floor(S.depth);
+
+  if (depth !== lastHud.depth) {
+    hudDepth.textContent = depth + 'm';
+    lastHud.depth = depth;
+  }
+
+  if (S.pearls !== lastHud.pearls) {
+    hudPearls.textContent = S.pearls;
+    lastHud.pearls = S.pearls;
+  }
+
+  const air = Math.round(S.air);
+
+  if (air !== lastHud.air) {
+    hudAirFill.style.width = air + '%';
+    lastHud.air = air;
+  }
+
+  const low = S.air < 28 && S.mode === 'playing';
+
+  if (low !== lastHud.low) {
+    hudAir.classList.toggle('low', low);
+    lastHud.low = low;
+  }
+
+  if (S.hearts !== lastHud.hearts) {
+    [...heartsEl.children].forEach((h, i) => {
+      h.classList.toggle('lost', i >= S.hearts);
+    });
+    lastHud.hearts = S.hearts;
+  }
 }
 
 /* ---------- input ---------- */
