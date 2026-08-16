@@ -27,6 +27,20 @@ const store = {
   set(k,v){ try{ localStorage.setItem(k,v); }catch{} }
 };
 const buzz = p => { try{ navigator.vibrate && navigator.vibrate(p); }catch{} };
+const JELLY_COLORS = {
+  '#7ef0ff': { 
+    fill: 'rgba(126,240,255,0.28)', 
+    stroke: 'rgba(126,240,255,0.9)', 
+    tentacle: 'rgba(126,240,255,0.6)',
+    glow: 'rgba(126,240,255,0.15)'
+  },
+  '#ff8ad8': { 
+    fill: 'rgba(255,138,216,0.28)', 
+    stroke: 'rgba(255,138,216,0.9)', 
+    tentacle: 'rgba(255,138,216,0.6)',
+    glow: 'rgba(255,138,216,0.15)'
+  }
+};
       
 /* ---------- sizing ---------- */
 let W=0, H=0;
@@ -461,24 +475,35 @@ function drawRays(){
   ctx.restore();
 }
 function drawPlankton(){
-  for(const p of plankton){
-    const a=.14+.22*(.5+.5*Math.sin(S.t*1.8+p.tw));
-    ctx.fillStyle=`rgba(159,232,255,${a*p.z})`;
-    ctx.fillRect(p.x,p.y,p.z*2.2,p.z*2.2);
+  ctx.fillStyle = 'rgb(159,232,255)';
+  for(let i=0; i<plankton.length; i++){
+    const p = plankton[i];
+    const a = .14 + .22 * (.5 + .5 * Math.sin(S.t * 1.8 + p.tw));
+    
+    ctx.globalAlpha = a * p.z;
+    ctx.fillRect(p.x, p.y, p.z * 2.2, p.z * 2.2);
   }
+  ctx.globalAlpha = 1.0;
 }
 function drawJelly(j){
   const s=1+Math.sin(S.t*3+j.ph)*.08;
   ctx.save(); ctx.translate(j.x,j.y); ctx.scale(s,2-s);
-  ctx.shadowColor=j.hue; ctx.shadowBlur=16;
-  ctx.fillStyle=hexA(j.hue,.28); ctx.strokeStyle=hexA(j.hue,.9); ctx.lineWidth=2;
+  
+  const c = JELLY_COLORS[j.hue];
+  
+  ctx.fillStyle = c.glow;
+  ctx.beginPath();
+  ctx.arc(0, 0, j.r + 12, 0, 6.283);
+  ctx.fill();
+
+  ctx.fillStyle=c.fill; ctx.strokeStyle=c.stroke; ctx.lineWidth=2;
   ctx.beginPath();
   ctx.arc(0,0,j.r,Math.PI,0);
   ctx.quadraticCurveTo(j.r*.6,j.r*.5,0,j.r*.45);
   ctx.quadraticCurveTo(-j.r*.6,j.r*.5,-j.r,0);
   ctx.fill(); ctx.stroke();
-  ctx.shadowBlur=0;
-  ctx.strokeStyle=hexA(j.hue,.6); ctx.lineWidth=1.6;
+
+  ctx.strokeStyle=c.tentacle; ctx.lineWidth=1.6;
   for(let k=0;k<4;k++){
     const bx=(k-1.5)*j.r*.5, sway=Math.sin(S.t*3.2+j.ph+k)*j.r*.35;
     ctx.beginPath(); ctx.moveTo(bx,j.r*.25);
@@ -502,9 +527,11 @@ function drawMine(m){
   ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,m.r,0,6.283); ctx.fill();
   ctx.strokeStyle='#2c4152'; ctx.lineWidth=2; ctx.stroke();
   const blink=.4+.6*Math.abs(Math.sin(S.t*5+m.rot*3));
-  ctx.fillStyle=`rgba(255,107,87,${blink})`;
-  ctx.shadowColor='#ff6b57'; ctx.shadowBlur=10;
+  ctx.fillStyle = 'rgb(255,107,87)';
+  ctx.globalAlpha = blink;
+  // shadowColor and shadowBlur are removed for performance
   ctx.beginPath(); ctx.arc(0,0,m.r*.18,0,6.283); ctx.fill();
+  ctx.globalAlpha = 1.0;
   ctx.restore();
 }
 function drawPearl(p){
