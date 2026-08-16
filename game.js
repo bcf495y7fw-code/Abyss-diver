@@ -27,6 +27,35 @@ const store = {
   set(k,v){ try{ localStorage.setItem(k,v); }catch{} }
 };
 const buzz = p => { try{ navigator.vibrate && navigator.vibrate(p); }catch{} };
+
+function makeRadialGlow(inner, outer) {
+  const size = 128;
+  const c = document.createElement('canvas');
+  c.width = size;
+  c.height = size;
+
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+
+  grad.addColorStop(0, inner);
+  grad.addColorStop(1, outer);
+
+  g.fillStyle = grad;
+  g.fillRect(0, 0, size, size);
+
+  return c;
+}
+
+const JELLY_GLOWS = {
+  '#7ef0ff': makeRadialGlow(
+    'rgba(126,240,255,0.28)',
+    'rgba(126,240,255,0)'
+  ),
+  '#ff8ad8': makeRadialGlow(
+    'rgba(255,138,216,0.28)',
+    'rgba(255,138,216,0)'
+  )
+};
 const JELLY_COLORS = {
   '#7ef0ff': { 
     fill: 'rgba(126,240,255,0.28)', 
@@ -486,30 +515,53 @@ function drawPlankton(){
   ctx.globalAlpha = 1.0;
 }
 function drawJelly(j){
-  const s=1+Math.sin(S.t*3+j.ph)*.08;
-  ctx.save(); ctx.translate(j.x,j.y); ctx.scale(s,2-s);
-  
+  const s = 1 + Math.sin(S.t * 3 + j.ph) * .08;
+
+  ctx.save();
+  ctx.translate(j.x, j.y);
+
+  // Pretty cached glow, much cheaper than shadowBlur
+  const glowRadius = j.r + 14;
+  ctx.drawImage(
+    JELLY_GLOWS[j.hue],
+    -glowRadius,
+    -glowRadius,
+    glowRadius * 2,
+    glowRadius * 2
+  );
+
+  ctx.scale(s, 2 - s);
+
   const c = JELLY_COLORS[j.hue];
-  
-  ctx.fillStyle = c.glow;
+
+  ctx.fillStyle = c.fill;
+  ctx.strokeStyle = c.stroke;
+  ctx.lineWidth = 2;
+
   ctx.beginPath();
-  ctx.arc(0, 0, j.r + 12, 0, 6.283);
+  ctx.arc(0, 0, j.r, Math.PI, 0);
+  ctx.quadraticCurveTo(j.r * .6, j.r * .5, 0, j.r * .45);
+  ctx.quadraticCurveTo(-j.r * .6, j.r * .5, -j.r, 0);
   ctx.fill();
+  ctx.stroke();
 
-  ctx.fillStyle=c.fill; ctx.strokeStyle=c.stroke; ctx.lineWidth=2;
-  ctx.beginPath();
-  ctx.arc(0,0,j.r,Math.PI,0);
-  ctx.quadraticCurveTo(j.r*.6,j.r*.5,0,j.r*.45);
-  ctx.quadraticCurveTo(-j.r*.6,j.r*.5,-j.r,0);
-  ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = c.tentacle;
+  ctx.lineWidth = 1.6;
 
-  ctx.strokeStyle=c.tentacle; ctx.lineWidth=1.6;
-  for(let k=0;k<4;k++){
-    const bx=(k-1.5)*j.r*.5, sway=Math.sin(S.t*3.2+j.ph+k)*j.r*.35;
-    ctx.beginPath(); ctx.moveTo(bx,j.r*.25);
-    ctx.bezierCurveTo(bx+sway*.4,j.r*.9, bx-sway*.4,j.r*1.4, bx+sway,j.r*1.9);
+  for(let k=0; k<4; k++){
+    const bx = (k - 1.5) * j.r * .5;
+    const sway = Math.sin(S.t * 3.2 + j.ph + k) * j.r * .35;
+
+    ctx.beginPath();
+    ctx.moveTo(bx, j.r * .25);
+    ctx.bezierCurveTo(
+      bx + sway * .4, j.r * .9,
+      bx - sway * .4, j.r * 1.4,
+      bx + sway, j.r * 1.9
+    );
     ctx.stroke();
   }
+
   ctx.restore();
 }
 function drawMine(m){
