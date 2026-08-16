@@ -377,7 +377,10 @@ function worldStep(dt, spd, live){
   /* pickups */
   for(let i=0; i<pearlsA.length; i++){ const p=pearlsA[i];
     if(!p.active) continue;
-    if(Math.hypot(p.x-P.x,p.y-P.y) < P.r+12){
+    const dx = p.x - P.x;
+    const dy = p.y - P.y;
+    const rr = P.r + 12;                                      
+    if (dx * dx + dy * dy < rr * rr) {
       p.active = false; S.pearls++;
       pop(p.x,p.y-14,'+1','#f2fbff'); burst(p.x,p.y,'#f2fbff',8,110);
       AudioFX.pearl(); buzz(15);
@@ -391,17 +394,38 @@ function worldStep(dt, spd, live){
       
   for(let i=0; i<bubbles.length; i++){ const b=bubbles[i];
     if(!b.active) continue;
-    if(Math.hypot(b.x-P.x,b.y-P.y) < P.r+b.r+4){
+    const dx = b.x - P.x;
+    const dy = b.y - P.y;
+    const rr = P.r + b.r + 4;
+    if (dx * dx + dy * dy < rr * rr) {
       b.active = false; S.air=clamp(S.air+30,0,100);
       pop(b.x,b.y-14,'+AIR','#4fe3c1'); burst(b.x,b.y,'#6fd9ff',8,110);
       AudioFX.bubble(); buzz(10);
     } }
 
   /* hazards */
-  if(S.inv<=0){
-    for(let i=0; i<jellies.length; i++){ const j=jellies[i]; if(j.active && Math.hypot(j.x-P.x,j.y-P.y) < j.r*.85+P.r*.8){ hurt(); break; } }
-    if(S.inv<=0) for(let i=0; i<mines.length; i++){ const m=mines[i]; if(m.active && Math.hypot(m.x-P.x,m.y-P.y) < m.r*1.05+P.r*.75){ hurt(); break; } }
-    if(S.inv<=0) for(let i=0; i<anglers.length; i++){ const a=anglers[i]; if(a.active && a.state==='dash' && Math.hypot(a.x-P.x,a.y-P.y) < 18+P.r*.8){ hurt(); break; } }
+  if (S.inv <= 0) {
+    for(let i = 0; i < jellies.length; i++){ const j = jellies[i];
+      if (!j.active) continue;
+      const dx = j.x - P.x;
+      const dy = j.y - P.y;
+      const rr = j.r * .85 + P.r * .8;
+      if (dx * dx + dy * dy < rr * rr) { hurt(); break; }
+    }
+    for(let i = 0; i < mines.length; i++){ const m = mines[i];
+      if (!m.active) continue;
+      const dx = m.x - P.x;
+      const dy = m.y - P.y;
+      const rr = m.r * 1.05 + P.r * .75;
+      if (dx * dx + dy * dy < rr * rr) { hurt(); break; }
+    }
+    for(let i = 0; i < anglers.length; i++){ const a = anglers[i];
+      if (!a.active || a.state !== 'dash') continue;
+      const dx = a.x - P.x;
+      const dy = a.y - P.y;
+      const rr = 18 + P.r * .8;
+      if (dx * dx + dy * dy < rr * rr) { hurt(); break; }
+    }
   }
 }
 
