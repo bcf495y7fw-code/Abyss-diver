@@ -587,15 +587,34 @@ function drawMine(m){
   ctx.restore();
 }
 function drawPearl(p){
-  const y=p.y+Math.sin(S.t*2.4+p.ph)*3;
+  const y = p.y + Math.sin(S.t * 2.4 + p.ph) * 3;
+
   ctx.save();
-  ctx.shadowColor='#eafcff'; ctx.shadowBlur=14;
-  ctx.fillStyle='#f6feff'; ctx.beginPath(); ctx.arc(p.x,y,p.r,0,6.283); ctx.fill();
-  ctx.shadowBlur=0;
-  ctx.fillStyle='rgba(120,180,200,.45)';
-  ctx.beginPath(); ctx.arc(p.x+2,y+2,p.r*.55,0,6.283); ctx.fill();
-  ctx.fillStyle='rgba(255,255,255,.9)';
-  ctx.beginPath(); ctx.arc(p.x-2.5,y-2.5,1.8,0,6.283); ctx.fill();
+
+  //Glow
+  ctx.fillStyle = 'rgba(234,252,255,0.16)';
+  ctx.beginPath();
+  ctx.arc(p.x, y, p.r + 6, 0, 6.283);
+  ctx.fill();
+
+  // Main pearl
+  ctx.fillStyle = '#f6feff';
+  ctx.beginPath();
+  ctx.arc(p.x, y, p.r, 0, 6.283);
+  ctx.fill();
+
+  // Soft shading
+  ctx.fillStyle = 'rgba(120,180,200,.45)';
+  ctx.beginPath();
+  ctx.arc(p.x + 2, y + 2, p.r * .55, 0, 6.283);
+  ctx.fill();
+
+  // Highlight
+  ctx.fillStyle = 'rgba(255,255,255,.9)';
+  ctx.beginPath();
+  ctx.arc(p.x - 2.5, y - 2.5, 1.8, 0, 6.283);
+  ctx.fill();
+
   ctx.restore();
 }
 function drawBubblePickup(b){
