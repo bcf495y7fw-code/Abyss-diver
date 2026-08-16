@@ -4,7 +4,7 @@
 
 /* ---------- DOM ---------- */
 const $ = s => document.querySelector(s);
-const APP_VERSION = '1.0.10';
+const APP_VERSION = '1.0.11';
 const canvas = $('#game'), ctx = canvas.getContext('2d');
 const hudDepth = $('#hudDepth'), hudPearls = $('#hudPearls'),
       hudAir = $('#hudAir'), hudAirFill = $('#hudAirFill'), heartsEl = $('#hearts');
@@ -44,8 +44,43 @@ const S = { mode:'menu', t:0, depth:0, pearls:0, hearts:3, air:100,
             inv:0, shake:0, speed:150, best:+(store.get('abyss.best','0')||0) };
 const P = { x:120, y:200, vy:0, r:15, diving:false, angle:0, prop:0 };
 
-let jellies=[], mines=[], pearlsA=[], bubbles=[], anglers=[],
-    parts=[], pops=[], plankton=[];
+const MAX_JELLIES = 30, MAX_MINES = 30, MAX_PEARLS = 50, MAX_BUBBLES = 30, MAX_ANGLERS = 10;
+const MAX_PARTS = 1000, MAX_POPS = 50;
+
+function createPool(size, factory) {
+    const pool = [];
+    for (let i = 0; i < size; i++) {
+        const obj = factory();
+        obj.active = false; // Everything starts inactive
+        pool.push(obj);
+    }
+    return pool;
+}
+
+function spawnFromPool(pool, initFn) {
+    for (let i = 0; i < pool.length; i++) {
+        if (!pool[i].active) {
+            pool[i].active = true;
+            initFn(pool[i]);
+            return true; // Spawn successful
+        }
+    }
+    return false; // Pool full (skip silently for performance)
+}
+
+function clearPool(pool) {
+    for (let i = 0; i < pool.length; i++) pool[i].active = false;
+}
+
+// Pre-allocate all object shapes. This prevents V8 de-optimization later.
+const jellies = createPool(MAX_JELLIES, () => ({x:0, y:0, base:0, r:0, ph:0, amp:0, hue:''}));
+const mines = createPool(MAX_MINES, () => ({x:0, y:0, r:0, rot:0, vr:0}));
+const pearlsA = createPool(MAX_PEARLS, () => ({x:0, y:0, r:0, ph:0}));
+const bubbles = createPool(MAX_BUBBLES, () => ({x:0, y:0, r:0, vy:0}));
+const anglers = createPool(MAX_ANGLERS, () => ({state:'', t:0, y:0, x:0, vx:0}));
+const parts = createPool(MAX_PARTS, () => ({kind:'', x:0, y:0, vx:0, vy:0, life:0, t:0, color:'', r:0, seed:0}));
+const pops = createPool(MAX_POPS, () => ({x:0, y:0, text:'', color:'', t:0}));
+let plankton = []; // Plankton doesn't grow/shrink, so dynamic array is fine.
 let spawnT = {jelly:1.6, mine:3, pearl:.9, bubble:1.4, angler:9};
 let lastMs=0, trailT=0, menuT={bub:0, jelly:2}, overShown=false;
 
@@ -114,12 +149,16 @@ const AudioFX = {
 };
 
 /* ---------- fx helpers ---------- */
-function pop(x,y,text,color='#ffc95c'){ pops.push({x,y,text,color,t:0}); }
+function pop(x,y,text,color='#ffc95c'){ 
+    spawnFromPool(pops, (p) => { p.x=x; p.y=y; p.text=text; p.color=color; p.t=0; }); 
+}
 function burst(x,y,color,n=10,spd=140){
   for(let i=0;i<n;i++){
     const a=Math.random()*6.283, s=rnd(.3,1)*spd;
-    parts.push({kind:'spark',x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,
-                life:rnd(.4,.8),t:0,color,r:rnd(1.5,3.5)});
+    spawnFromPool(parts, (p) => {
+      p.kind='spark'; p.x=x; p.y=y; p.vx=Math.cos(a)*s; p.vy=Math.sin(a)*s;
+      p.life=rnd(.4,.8); p.t=0; p.color=color; p.r=rnd(1.5,3.5);
+    });
   }
 }
 function toast(msg){
@@ -138,19 +177,28 @@ const diff = () => clamp(S.depth/900, 0, 1);
 
 function spawnJelly(){
   const base = rnd(H*.18, H*.8);
-  jellies.push({x:W+50, y:base, base, r:rnd(12,20), ph:rnd(0,6.28),
-                amp:rnd(12,30), hue: Math.random()<.5 ? '#7ef0ff' : '#ff8ad8'});
+  spawnFromPool(jellies, (j) => {
+    j.x=W+50; j.y=base; j.base=base; j.r=rnd(12,20); j.ph=rnd(0,6.28);
+    j.amp=rnd(12,30); j.hue= Math.random()<.5 ? '#7ef0ff' : '#ff8ad8';
+  });
 }
 function spawnMine(){
-  mines.push({x:W+50, y:rnd(H*.12,H*.88), r:rnd(14,20), rot:rnd(0,6.28), vr:rnd(-.6,.6)});
+  spawnFromPool(mines, (m) => {
+    m.x=W+50; m.y=rnd(H*.12,H*.88); m.r=rnd(14,20); m.rot=rnd(0,6.28); m.vr=rnd(-.6,.6);
+  });
 }
 function spawnPearls(){
   const n=3+Math.floor(Math.random()*3), by=rnd(H*.2,H*.8), ph=rnd(0,6.28);
-  for(let i=0;i<n;i++)
-    pearlsA.push({x:W+50+i*36, y:by+Math.sin(ph+i*.9)*26, r:7, ph:rnd(0,6.28)});
+  for(let i=0;i<n;i++) {
+    spawnFromPool(pearlsA, (p) => {
+      p.x=W+50+i*36; p.y=by+Math.sin(ph+i*.9)*26; p.r=7; p.ph=rnd(0,6.28);
+    });
+  }
 }
 function spawnBubble(){
-  bubbles.push({x:W+rnd(20,120), y:rnd(H*.35,H*1.05), r:rnd(7,11), vy:rnd(-40,-20)});
+  spawnFromPool(bubbles, (b) => {
+    b.x=W+rnd(20,120); b.y=rnd(H*.35,H*1.05); b.r=rnd(7,11); b.vy=rnd(-40,-20);
+  });
 }
 
 /* ---------- flow ---------- */
@@ -158,8 +206,8 @@ function reset(){
   S.depth=0; S.pearls=0; S.hearts=3; S.air=100; S.inv=0; S.shake=0;
   S.speed=150; lastMs=0; trailT=0;
   P.y=H*.45; P.vy=0; P.diving=false; P.angle=0;
-  jellies.length=0; mines.length=0; pearlsA.length=0; bubbles.length=0;
-  anglers.length=0; parts.length=0; pops.length=0;
+  clearPool(jellies); clearPool(mines); clearPool(pearlsA); clearPool(bubbles);
+  clearPool(anglers); clearPool(parts); clearPool(pops);
   spawnT={jelly:1.6, mine:3, pearl:.9, bubble:1.4, angler:9};
 }
 function startGame(){
@@ -173,8 +221,8 @@ function startGame(){
 function toMenu(){
   S.mode='menu';
   S.inv = 0;
-  jellies.length=0; mines.length=0; pearlsA.length=0; bubbles.length=0;
-  anglers.length=0; pops.length=0;
+  clearPool(jellies); clearPool(mines); clearPool(pearlsA); clearPool(bubbles);
+  clearPool(anglers); clearPool(parts); clearPool(pops);
   menuEl.hidden=false; overEl.hidden=true; pauseEl.hidden=true;
   document.body.dataset.mode='menu';
   menuBest.innerHTML = `Best depth — <b>${S.best} m</b>`;
@@ -196,9 +244,12 @@ function die(cause){
   S.mode='dead'; P.diving=false;
   burst(P.x,P.y,'#ff6b57',26,260);
   burst(P.x,P.y,'#ffc95c',18,200);
-  for(let i=0;i<12;i++)
-    parts.push({kind:'bub',x:P.x+rnd(-14,14),y:P.y+rnd(-10,10),
-                r:rnd(2,5),t:0,life:rnd(1,2),seed:rnd(0,6)});
+  for(let i=0;i<12;i++) {
+    spawnFromPool(parts, (p) => {
+        p.kind='bub'; p.x=P.x+rnd(-14,14); p.y=P.y+rnd(-10,10);
+        p.r=rnd(2,5); p.t=0; p.life=rnd(1,2); p.seed=rnd(0,6);
+    });
+  }
   S.shake=22; AudioFX.over(); buzz([90,60,140]);
   const prev=S.best, dep=Math.floor(S.depth);
   if(dep>S.best){ S.best=dep; store.set('abyss.best',String(dep)); }
@@ -231,28 +282,40 @@ function updatePlayer(dt){
   trailT -= dt;
   if(trailT<=0){
     trailT=.16;
-    parts.push({kind:'bub',x:P.x-24,y:P.y+rnd(-4,4),r:rnd(1.5,3.5),
-                t:0,life:rnd(.8,1.4),seed:rnd(0,6)});
+    spawnFromPool(parts, (p) => {
+        p.kind='bub'; p.x=P.x-24; p.y=P.y+rnd(-4,4); p.r=rnd(1.5,3.5);
+        p.t=0; p.life=rnd(.8,1.4); p.seed=rnd(0,6);
+    });
   }
 }
 
 function worldStep(dt, spd, live){
   const d = diff();
-  for(let i=jellies.length-1;i>=0;i--){ const j=jellies[i];
+  for(let i=0; i<jellies.length; i++){ const j=jellies[i];
+    if(!j.active) continue;
     j.x -= spd*.92*dt; j.y = j.base + Math.sin(S.t*1.5+j.ph)*j.amp;
-    if(j.x<-70) jellies.splice(i,1); }
-  for(let i=mines.length-1;i>=0;i--){ const m=mines[i];
+    if(j.x<-70) j.active = false; 
+  }
+  for(let i=0; i<mines.length; i++){ const m=mines[i];
+    if(!m.active) continue;
     m.x -= spd*dt; m.rot += m.vr*dt;
-    if(m.x<-60) mines.splice(i,1); }
-  for(let i=pearlsA.length-1;i>=0;i--){ const p=pearlsA[i];
-    p.x -= spd*dt; if(p.x<-30) pearlsA.splice(i,1); }
-  for(let i=bubbles.length-1;i>=0;i--){ const b=bubbles[i];
+    if(m.x<-60) m.active = false; 
+  }
+  for(let i=0; i<pearlsA.length; i++){ const p=pearlsA[i];
+    if(!p.active) continue;
+    p.x -= spd*dt; if(p.x<-30) p.active = false; 
+  }
+  for(let i=0; i<bubbles.length; i++){ const b=bubbles[i];
+    if(!b.active) continue;
     b.x -= spd*.85*dt; b.y += b.vy*dt;
-    if(b.x<-40 || b.y<-30) bubbles.splice(i,1); }
-  for(let i=anglers.length-1;i>=0;i--){ const a=anglers[i];
+    if(b.x<-40 || b.y<-30) b.active = false; 
+  }
+  for(let i=0; i<anglers.length; i++){ const a=anglers[i];
+    if(!a.active) continue;
     if(a.state==='warn'){ a.t+=dt;
       if(live && a.t>.95){ a.state='dash'; a.vx=-(560+260*d); } }
-    else { a.x += a.vx*dt; if(a.x<-90) anglers.splice(i,1); } }
+    else { a.x += a.vx*dt; if(a.x<-90) a.active = false; } 
+  }
 
   if(!live) return;
 
@@ -262,14 +325,17 @@ function worldStep(dt, spd, live){
   spawnT.pearl-=dt; if(spawnT.pearl<=0){ spawnPearls(); spawnT.pearl=rnd(1.6,2.8); }
   spawnT.bubble-=dt; if(spawnT.bubble<=0){ spawnBubble(); spawnT.bubble=lerp(3.1,2.1,d)*rnd(.8,1.4); }
   spawnT.angler-=dt; if(spawnT.angler<=0 && S.depth>450){
-    anglers.push({state:'warn',t:0,y:clamp(P.y+rnd(-60,60),80,H-80),x:W+60,vx:0});
+    spawnFromPool(anglers, (a) => {
+        a.state='warn'; a.t=0; a.y=clamp(P.y+rnd(-60,60),80,H-80); a.x=W+60; a.vx=0;
+    });
     spawnT.angler=rnd(6,11);
   }
 
   /* pickups */
-  for(let i=pearlsA.length-1;i>=0;i--){ const p=pearlsA[i];
+  for(let i=0; i<pearlsA.length; i++){ const p=pearlsA[i];
+    if(!p.active) continue;
     if(Math.hypot(p.x-P.x,p.y-P.y) < P.r+12){
-      pearlsA.splice(i,1); S.pearls++;
+      p.active = false; S.pearls++;
       pop(p.x,p.y-14,'+1','#f2fbff'); burst(p.x,p.y,'#f2fbff',8,110);
       AudioFX.pearl(); buzz(15);
 
@@ -280,24 +346,29 @@ function worldStep(dt, spd, live){
       } 
     } }
       
-  for(let i=bubbles.length-1;i>=0;i--){ const b=bubbles[i];
+  for(let i=0; i<bubbles.length; i++){ const b=bubbles[i];
+    if(!b.active) continue;
     if(Math.hypot(b.x-P.x,b.y-P.y) < P.r+b.r+4){
-      bubbles.splice(i,1); S.air=clamp(S.air+30,0,100);
+      b.active = false; S.air=clamp(S.air+30,0,100);
       pop(b.x,b.y-14,'+AIR','#4fe3c1'); burst(b.x,b.y,'#6fd9ff',8,110);
       AudioFX.bubble(); buzz(10);
     } }
 
   /* hazards */
   if(S.inv<=0){
-    for(const j of jellies) if(Math.hypot(j.x-P.x,j.y-P.y) < j.r*.85+P.r*.8){ hurt(); break; }
-    if(S.inv<=0) for(const m of mines) if(Math.hypot(m.x-P.x,m.y-P.y) < m.r*1.05+P.r*.75){ hurt(); break; }
-    if(S.inv<=0) for(const a of anglers) if(a.state==='dash' && Math.hypot(a.x-P.x,a.y-P.y) < 18+P.r*.8){ hurt(); break; }
+    for(let i=0; i<jellies.length; i++){ const j=jellies[i]; if(j.active && Math.hypot(j.x-P.x,j.y-P.y) < j.r*.85+P.r*.8){ hurt(); break; } }
+    if(S.inv<=0) for(let i=0; i<mines.length; i++){ const m=mines[i]; if(m.active && Math.hypot(m.x-P.x,m.y-P.y) < m.r*1.05+P.r*.75){ hurt(); break; } }
+    if(S.inv<=0) for(let i=0; i<anglers.length; i++){ const a=anglers[i]; if(a.active && a.state==='dash' && Math.hypot(a.x-P.x,a.y-P.y) < 18+P.r*.8){ hurt(); break; } }
   }
 }
 
 function updateParts(dt){
-  for(let i=parts.length-1;i>=0;i--){ const p=parts[i]; p.t+=dt;
-    if(p.t>=p.life){ parts.splice(i,1); continue; }
+  for(let i=0; i<parts.length; i++){ 
+    const p=parts[i]; 
+    if(!p.active) continue;
+    p.t+=dt;
+    if(p.t>=p.life){ p.active = false; continue; }
+    
     if(p.kind==='bub'){
       p.y -= (26+p.r*9)*dt;
       p.x += Math.sin(p.t*5+p.seed)*10*dt;
@@ -306,8 +377,14 @@ function updateParts(dt){
       p.x += p.vx*dt; p.y += p.vy*dt;
       p.vx *= (1-2.2*dt); p.vy *= (1-2.2*dt);
       if(S.mode==='playing') p.x -= S.speed*.4*dt;
-    } }
-  for(let i=pops.length-1;i>=0;i--){ pops[i].t+=dt; if(pops[i].t>1.05) pops.splice(i,1); }
+    } 
+  }
+  for(let i=0; i<pops.length; i++){ 
+    const p = pops[i];
+    if(!p.active) continue;
+    p.t+=dt; 
+    if(p.t>1.05) p.active = false; 
+  }
 }
 
 function menuAmbient(dt){
@@ -316,7 +393,11 @@ function menuAmbient(dt){
   P.angle=Math.sin(S.t*.9)*.06;
   P.prop+=dt*7;
   menuT.bub-=dt; if(menuT.bub<=0){ menuT.bub=rnd(.35,.7);
-    parts.push({kind:'bub',x:P.x-24,y:P.y+rnd(-5,5),r:rnd(1.5,3.5),t:0,life:rnd(.9,1.6),seed:rnd(0,6)}); }
+    spawnFromPool(parts, (p) => {
+        p.kind='bub'; p.x=P.x-24; p.y=P.y+rnd(-5,5); p.r=rnd(1.5,3.5);
+        p.t=0; p.life=rnd(.9,1.6); p.seed=rnd(0,6);
+    });
+  }
   menuT.jelly-=dt; if(menuT.jelly<=0){ menuT.jelly=rnd(3,5.5); spawnJelly(); }
   worldStep(dt, 26, false);
 }
@@ -446,7 +527,9 @@ function drawBubblePickup(b){
   ctx.beginPath(); ctx.arc(b.x-b.r*.25,b.y-b.r*.25,b.r*.5,Math.PI*1.1,Math.PI*1.6); ctx.stroke();
 }
 function drawAnglers(){
-  for(const a of anglers){
+  for(let i=0; i<anglers.length; i++){
+    const a = anglers[i];
+    if(!a.active) continue;
     if(a.state==='warn'){
       const p=(a.t%.5)/.5;
       ctx.save(); ctx.translate(W-30,a.y);
@@ -510,7 +593,9 @@ function drawPlayer(){
   ctx.restore();
 }
 function drawParts(){
-  for(const p of parts){
+  for(let i=0; i<parts.length; i++){
+    const p = parts[i];
+    if(!p.active) continue;
     const k=1-p.t/p.life;
     if(p.kind==='bub'){
       ctx.strokeStyle=`rgba(190,240,255,${.7*k})`; ctx.lineWidth=1.2;
@@ -524,7 +609,9 @@ function drawParts(){
 function drawPops(){
   ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.font='13px Bungee, sans-serif';
-  for(const p of pops){
+  for(let i=0; i<pops.length; i++){
+    const p = pops[i];
+    if(!p.active) continue;
     const k=1-p.t/1.05;
     ctx.fillStyle=hexA(p.color, Math.min(1,k*1.4));
     ctx.fillText(p.text, p.x, p.y - p.t*34);
@@ -535,11 +622,13 @@ function draw(){
   ctx.save();
   ctx.translate((Math.random()-.5)*sh, (Math.random()-.5)*sh);
   drawBG(); drawRays(); drawPlankton();
-  for(const b of bubbles) drawBubblePickup(b);
-  for(const p of pearlsA) drawPearl(p);
-  for(const m of mines) drawMine(m);
+  
+  for(let i=0; i<bubbles.length; i++) if(bubbles[i].active) drawBubblePickup(bubbles[i]);
+  for(let i=0; i<pearlsA.length; i++) if(pearlsA[i].active) drawPearl(pearlsA[i]);
+  for(let i=0; i<mines.length; i++) if(mines[i].active) drawMine(mines[i]);
   drawAnglers();
-  for(const j of jellies) drawJelly(j);
+  for(let i=0; i<jellies.length; i++) if(jellies[i].active) drawJelly(jellies[i]);
+  
   if(S.mode!=='dead') drawPlayer();
   drawParts(); drawPops();
   ctx.restore();
